@@ -1,3 +1,7 @@
+// Reference:
+// http://doc.cgal.org/latest/Polygon_mesh_processing/
+// section 2.2.3
+
 #include <fstream>
 #include <vector>
 
@@ -43,12 +47,12 @@ int main(int argc, char* argv[])
 
 
   po::variables_map vm;  
-  po::store(po::parse_command_line(argc, argv,desc), vm);
+  po::store(po::parse_command_line(argc, argv, desc), vm);
 
   if (vm.count("help")) {
     
     std::cout << "Usage: " << std::endl;
-    std::cout <<  appName << " -i input_file [-e target_edge_length=0.005] [-h]" << std::endl;
+    std::cout <<  appName << " -i input_file [-e target_edge_length=0.005] [-r num_iteration] [-h]" << std::endl;
 
     return 0;
   } 
@@ -71,6 +75,7 @@ int main(int argc, char* argv[])
       mesh,
       boost::make_function_output_iterator(halfedge2edge(mesh, border)));
     PMP::split_long_edges(border, target_edge_length, mesh);
+
   std::cout << "done." << std::endl;
   std::cout << "Start remeshing of " << filename
     << " (" << num_faces(mesh) << " faces)..." << std::endl;
@@ -81,7 +86,7 @@ int main(int argc, char* argv[])
       PMP::parameters::number_of_iterations(nb_iter)
       .protect_constraints(true)//i.e. protect border, here
       );
-  
+
   std::cout << "Remeshing done." << " (" << num_faces(mesh) << " faces)..." << std::endl;
 
   const std::string output_filename = filename + "_remeshed.off";
