@@ -1,11 +1,13 @@
+#include <fstream>
+#include <vector>
+
+#include <boost/function_output_iterator.hpp>
+#include <boost/program_options.hpp>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/boost/graph/graph_traits_Surface_mesh.h>
 #include <CGAL/Polygon_mesh_processing/remesh.h>
 #include <CGAL/Polygon_mesh_processing/border.h>
-#include <boost/function_output_iterator.hpp>
-#include <fstream>
-#include <vector>
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
 typedef CGAL::Surface_mesh<K::Point_3> Mesh;
@@ -26,17 +28,43 @@ struct halfedge2edge
   const Mesh& m_mesh;
   std::vector<edge_descriptor>& m_edges;
 };
+
 int main(int argc, char* argv[])
 {
-  const char* filename = (argc > 1) ? argv[1] : "data/pig.off";
+
+  std::string appName = std::string(argv[0]);
+  namespace po = boost::program_options; 
+  po::options_description desc("Options"); 
+  desc.add_options() 
+    ("help,h", "Print help messages") 
+    ("input,i", po::value<std::string>()->required(), "input mesh.") 
+    ("edge_length,e", po::value<double>()->default_value(0.005), "target edge length.")
+    ("iteration,r", po::value<int>()->default_value(3), "number of iterations."); 
+
+
+  po::variables_map vm;  
+  po::store(po::parse_command_line(argc, argv,desc), vm);
+
+  if (vm.count("help")) {
+    
+    std::cout << "Usage: " << std::endl;
+    std::cout <<  appName << " -i input_file [-e target_edge_length=0.005] [-h]" << std::endl;
+
+    return 0;
+  } 
+
+  const std::string& filename = vm["input"].as<std::string>();
   std::ifstream input(filename);
   Mesh mesh;
+  
   if (!input || !(input >> mesh)) {
     std::cerr << "Not a valid off file." << std::endl;
     return 1;
   }
-  double target_edge_length = 0.04;
-  unsigned int nb_iter = 3;
+
+  const double target_edge_length = vm["edge_length"].as<double>();
+  const int nb_iter = vm["iteration"].as<int>();
+
   std::cout << "Split border...";
     std::vector<edge_descriptor> border;
     PMP::border_halfedges(faces(mesh),
@@ -53,6 +81,13 @@ int main(int argc, char* argv[])
       PMP::parameters::number_of_iterations(nb_iter)
       .protect_constraints(true)//i.e. protect border, here
       );
-  std::cout << "Remeshing done." << std::endl;
+  
+  std::cout << "Remeshing done." << " (" << num_faces(mesh) << " faces)..." << std::endl;
+
+  const std::string output_filename = filename + "_remeshed.off";
+  std::ofstream output(output_filename);
+  output << mesh;  
+  std::cout << "Output to " << output_filename << std::endl;
+
   return 0;
 }
