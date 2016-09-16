@@ -12,7 +12,10 @@ include( ${CGAL_USE_FILE} )
 
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
-find_package(Boost COMPONENTS program_options system REQUIRED)
+find_package(Boost REQUIRED COMPONENTS 
+  program_options 
+  system
+  filesystem)
 
 
 include_directories(

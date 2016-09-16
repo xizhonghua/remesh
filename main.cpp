@@ -7,6 +7,7 @@
 
 #include <boost/function_output_iterator.hpp>
 #include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/boost/graph/graph_traits_Surface_mesh.h>
@@ -66,19 +67,25 @@ int main(int argc, char* argv[])
     return 1;
   }
 
+  std::cout << "Original mesh " << filename
+    << " (" << num_faces(mesh) << " faces)..." << std::endl;
+
   const double target_edge_length = vm["edge_length"].as<double>();
   const int nb_iter = vm["iteration"].as<int>();
 
   std::cout << "Split border...";
-    std::vector<edge_descriptor> border;
-    PMP::border_halfedges(faces(mesh),
-      mesh,
-      boost::make_function_output_iterator(halfedge2edge(mesh, border)));
-    PMP::split_long_edges(border, target_edge_length, mesh);
+  
+  std::vector<edge_descriptor> border;
+  PMP::border_halfedges(faces(mesh),
+    mesh,
+    boost::make_function_output_iterator(halfedge2edge(mesh, border)));
+  
+  PMP::split_long_edges(border, target_edge_length, mesh);
 
   std::cout << "done." << std::endl;
-  std::cout << "Start remeshing of " << filename
-    << " (" << num_faces(mesh) << " faces)..." << std::endl;
+
+  std::cout << "Starting remeshing... " << std::endl;
+  
   PMP::isotropic_remeshing(
       faces(mesh),
       target_edge_length,
@@ -89,7 +96,9 @@ int main(int argc, char* argv[])
 
   std::cout << "Remeshing done." << " (" << num_faces(mesh) << " faces)..." << std::endl;
 
-  const std::string output_filename = filename + "_remeshed.off";
+  boost::filesystem::path p(filename);
+
+  const std::string output_filename = (p.parent_path() /= p.stem()).string() + "_remeshed.off";
   std::ofstream output(output_filename);
   output << mesh;  
   std::cout << "Output to " << output_filename << std::endl;
